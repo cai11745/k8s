@@ -1,0 +1,55 @@
+一个域名，多个目录
+[root@instance-1 k8s]# cat ingress.yaml 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: nginx.test.cc
+    http:
+      paths:
+      - path: /docs
+        backend:
+          serviceName: tom1
+          servicePort: 8080
+      - path: /examples
+        backend:
+          serviceName: tom2
+          servicePort: 8080
+
+
+创建ingress文件。本地hosts添加   nginx-ingress-controller所在的主机IP    nginx.test.cc
+
+curl nginx.test.cc/docs/  会转到tom1:8080/docs/
+curl nginx.test.cc/examples/ 会转到 tom2:8080/examples/
+
+多个域名
+
+[root@instance-1 k8s]# cat ingress2.yaml 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress2
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: nginx.test.cc
+    http:
+      paths:
+      - backend:
+          serviceName: tom1
+          servicePort: 8080
+  - host: nginx2.test.cc
+    http:
+      paths:
+      - backend:
+          serviceName: tom2
+          servicePort: 8080
+添加hosts  10.128.0.2 nginx.test.cc  nginx2.test.cc
+
+curl nginx.test.cc
+curl nginx2.test.cc

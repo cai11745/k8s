@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 1Mi
+  selector:
+    matchLabels:
+      name: pweb-nas
+
+	  
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    # FIXME: use the right IP
+    server: 10.244.1.4
+    path: "/"	  
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pweb-nas
+  labels:
+    name: pweb-nas
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  nfs:
+    path: /vx/nfs-share
+    server: 77.1.1.2
+  persistentVolumeReclaimPolicy: Retain
+
+  
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv0001
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/data01"
+
+	访问模式
+第一种，ReadWriteOnce：是最基本的方式，可读可写，但只支持被单个Pod挂载。
+第二种，ReadOnlyMany：可以以只读的方式被多个Pod挂载。
+第三种，ReadWriteMany：这种存储可以以读写的方式被多个Pod共享。不是每一种存储都支持这三种方式，像共享方式，目前支持的还比较少，比较常用的是NFS。在PVC绑定PV时通常根据两个条件来绑定，一个是存储的大小，另一个就是访问模式。
+
+现有回收策略有：
+Retain – 手动重新使用
+Recycle – 基本的删除操作 (“rm -rf /thevolume/*”)
+Delete – 关联的后端存储卷一起删除，后端存储例如AWS EBS, GCE PD或OpenStack Cinder
+目前只有NFS和HostPath支持回收，AWS EBS, GCE PD和Cinder volumes只支持删除。

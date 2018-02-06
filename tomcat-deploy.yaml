@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    application-name: tomcat-yaml
+    version-id: v1
+  name: tomcat
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      version-id: v1
+      name: tom2
+  template:
+    metadata:
+      labels:
+        version-id: v1
+        name: tom2
+    spec:
+      containers:
+      - env:
+        - name: nameff
+          value: tomcatff
+        image: tomcat:latest
+        name: tomcat-ff
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: tom8080
+

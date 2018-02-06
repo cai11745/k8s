@@ -1,0 +1,7 @@
+先yum  install -y bash-completion
+vi ~/.bashrc
+最后增加
+source <(kubectl completion bash)
+
+执行source ~/.bashrc
+然后kubectl  ，table键就能调出后续命令

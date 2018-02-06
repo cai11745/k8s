@@ -1,0 +1,58 @@
+安装 CFSSL
+wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+chmod +x cfssl_linux-amd64
+sudo mv cfssl_linux-amd64 /usr/local/bin/cfssl
+
+wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+chmod +x cfssljson_linux-amd64
+sudo mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
+
+wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+chmod +x cfssl-certinfo_linux-amd64
+sudo mv cfssl-certinfo_linux-amd64 /usr/local/bin/cfssl-certinfo
+
+使用的变量
+本文档用到的变量定义如下：
+$ export NODE_NAME=etcd-host0 # 当前部署的机器名称(随便定义，只要能区分不同机器即可)
+$ export NODE_IP=10.64.3.7 # 当前部署的机器 IP
+$ export NODE_IPS="10.64.3.7 10.64.3.8 10.66.3.86" # etcd 集群所有机器 IP
+$ # etcd 集群间通信的IP和端口
+$ export ETCD_NODES=etcd-host0=https://10.64.3.7:2380,etcd-host1=https://10.64.3.8:2380,etcd-host2=https://10.66.3.86:2380
+$ # 导入用到的其它全局变量：ETCD_ENDPOINTS、FLANNEL_ETCD_PREFIX、CLUSTER_CIDR
+$ source /root/local/bin/environment.sh
+$
+下载二进制文件
+到 https://github.com/coreos/etcd/releases 页面下载最新版本的二进制文件：
+$ wget https://github.com/coreos/etcd/releases/download/v3.2.15/etcd-v3.2.15-linux-amd64.tar.gz
+$ tar -zxvf etcd-v3.2.15-linux-amd64.tar.gz
+$ sudo mv etcd-v3.2.15-linux-amd64/etcd* /usr/local/bin
+创建 TLS 秘钥和证书
+为了保证通信安全，客户端(如 etcdctl) 与 etcd 集群、etcd 集群之间的通信需要使用 TLS 加密，本节创建 etcd TLS 加密所需的证书和私钥。
+创建 etcd 证书签名请求：
+$ cat > etcd-csr.json <<EOF
+{
+  "CN": "etcd",
+  "hosts": [
+    "127.0.0.1",
+    "${NODE_IP}"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "BeiJing",
+      "L": "BeiJing",
+      "O": "k8s",
+      "OU": "System"
+    }
+  ]
+}
+EOF
+
+
+https://www.kubernetes.org.cn/3096.html
+
+kubeadm init --skip-preflight-checks --config=cluster 

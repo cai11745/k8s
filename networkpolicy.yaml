@@ -1,0 +1,84 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 172.17.0.0/16
+        except:
+        - 172.17.1.0/24
+    - namespaceSelector:
+        matchLabels:
+          project: myproject
+    - podSelector:
+        matchLabels:
+          role: frontend
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - protocol: TCP
+      port: 5978
+
+规则只针对容器网络，无法限制主机网络权限。	  
+ingress表示进来的权限控制。针对role: db这个label的pod，可以指定三种流量进来。
+第一个是ip范围 172.17.0.0/16可以访问，但是排除172.17.1.0/24
+第二个是project: myproject 这个具备这个label的namespace下的po可以访问
+第三个是具备role: frontend 这个label的pod可以访问，但要是当前namespace下的
+
+egress表示出去的权限控制。范围设定同上，也是支持三种格式。
+当前允许访问的目标地址范围10.0.0.0/24，目标地址端口为5978
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+当前namespace下，选择了所有的pod，设定了进入流量规则，但是允许范围为空。就是当前namespace下不允许任何流量进入
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all
+spec:
+  podSelector: {}
+  ingress:
+  - {}
+所有pod允许所有流量进入，和不设置一个效果。
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+出口流量允许为空，所有pod无法访问外部。
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all
+spec:
+  podSelector: {}
+  egress:
+  - {}
+允许所有出口流量
+

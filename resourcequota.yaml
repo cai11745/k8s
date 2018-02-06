@@ -1,0 +1,32 @@
+$ kubectl create namespace myspace
+
+$ cat <<EOF > compute-resources.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+spec:
+  hard:
+    pods: "4"
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+EOF
+$ kubectl create -f ./compute-resources.yaml --namespace=myspace
+
+$ cat <<EOF > object-counts.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: object-counts
+spec:
+  hard:
+    configmaps: "10"
+    persistentvolumeclaims: "4"
+    replicationcontrollers: "20"
+    secrets: "10"
+    services: "10"
+    services.loadbalancers: "2"
+EOF
+$ kubectl create -f ./object-counts.yaml --namespace=myspace
