@@ -1,0 +1,26 @@
+https://supereagle.github.io/2017/03/09/kubemark/
+
+环境ubuntu16.04
+1. 安装依赖
+apt-get install gcc
+2. Go开发环境
+root@node1:~# wget https://dl.google.com/go/go1.9.4.linux-amd64.tar.gz
+
+root@node1:~#  tar -C /usr/local -xzf go1.9.4.linux-amd64.tar.gz
+root@node1:~# vim /etc/profile  #增加
+ export PATH=$PATH:/usr/local/go/bin
+ export GOPATH=/root/go
+ 
+ root@node1:~# source /etc/profile
+ root@node1:~#  go get -d k8s.io/kubernetes
+ root@node1:~# cd go/src/k8s.io/kubernetes
+ 
+ 3.Git clone K8s源码
+ 
+ 
+ 
+ export KUBECTL_PATH=/usr/bin/kubectl
+ 
+ #cp /root/.kube/config /var/run/kubernetes/admin.kubeconfig
+ export KUBECONFIG=$HOME/.kube/config
+ 

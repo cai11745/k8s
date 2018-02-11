@@ -1,9 +1,9 @@
-kind: ''                            //必选，ReplicationController
-apiVersion: ''                      //必选，v1
-metadata:                           //必选，元数据
-  name: ''                          //必选，rc名称
+kind: ''                      
+apiVersion: ''                 
+metadata:                        
+  name: ''                     
   generateName: ''
-  namespace: ''                     //必选，命名空间，默认default
+  namespace: ''                 
   selfLink: ''
   uid: ''
   resourceVersion: ''
@@ -13,10 +13,10 @@ metadata:                           //必选，元数据
   deletionGracePeriodSeconds: {}
   labels: any
   annotations: any
-spec:                               //必选，详细描述
-  replicas: {}                      //必选，pod副本数，设置0表示不创建pod
-  selector: any                     //必选，rc label选择器
-  template:                         //必选，容器的定义
+spec:                               
+  replicas: {}                   
+  selector: any               
+  template:                     
     metadata:
       name: ''
       generateName: ''

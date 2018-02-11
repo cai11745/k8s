@@ -2,6 +2,25 @@
 ##### install docker/kubeadm
 https://kubernetes.io/docs/setup/independent/install-kubeadm/
 
+在所有kubernetes节点上设置kubelet使用cgroupfs，与dockerd保持一致，否则kubelet会启动报错
+```
+docker配置
+cat << EOF > /etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=cgroupfs"]
+}
+EOF
+systemctl daemon-reload && systemctl restart docker
+
+默认kubelet使用的cgroup-driver=systemd，改为cgroup-driver=cgroupfs
+vi /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+#Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=systemd"
+Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs"
+
+重设kubelet服务，并重启kubelet服务
+systemctl daemon-reload && systemctl restart kubelet
+```
+
 关闭swap
 ```
 swapoff -a

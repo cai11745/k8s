@@ -1,0 +1,144 @@
+kubeadm update 测试1.8升级到1.9
+https://kubernetes.io/docs/tasks/administer-cluster/kubeadm-upgrade-1-9/
+Also, note that only one minor version upgrade is supported. For example, you can only upgrade from 1.8 to 1.9, not from 1.7 to 1.9.
+
+192.168.1.148  ubuntu 16.04
+
+卸载当前版本
+apt-get remove kubectl kubeadm kubelet
+
+清空当前数据
+kubeadm reset
+systemctl stop kubelet
+systemctl stop docker
+rm -rf /var/lib/cni/
+rm -rf /var/lib/kubelet/*
+rm -rf /etc/cni/
+
+
+ip a | grep -E 'docker|flannel|cni'
+ip link del docker0
+ip link del flannel.1
+ip link del cni0
+
+systemctl restart docker && systemctl restart kubelet
+ip a | grep -E 'docker|flannel|cni'
+
+ip a  查看是否还存在之前容器使用的网卡，还有多余的，重启下系统。 docker0正常的。
+
+下载1.8.4
+ wget https://dl.k8s.io/v1.8.4/kubernetes-server-linux-amd64.tar.gz
+ root@ubuntu:~# ls /root/kubernetes-server-linux-amd64.tar.gz
+ 
+ tar -zxvf kubernetes-server-linux-amd64.tar.gz
+ root@ubuntu:~# cp kubernetes/server/bin/kubeadm /usr/bin/
+root@ubuntu:~# cp kubernetes/server/bin/kubectl /usr/bin/
+root@ubuntu:~# cp kubernetes/server/bin/kubelet /usr/bin/
+
+创建kubelet服务和配置文件
+root@ubuntu:/home/kubernetes/node/bin# cat /lib/systemd/system/kubelet.service
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=http://kubernetes.io/docs/
+
+[Service]
+ExecStart=/usr/bin/kubelet
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+
+root@ubuntu:/home/kubernetes/node/bin# cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf 
+[Service]
+Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
+Environment="KUBELET_SYSTEM_PODS_ARGS=--pod-manifest-path=/etc/kubernetes/manifests --allow-privileged=true"
+Environment="KUBELET_NETWORK_ARGS=--network-plugin=cni --cni-conf-dir=/etc/cni/net.d --cni-bin-dir=/opt/cni/bin"
+Environment="KUBELET_DNS_ARGS=--cluster-dns=10.96.0.10 --cluster-domain=cluster.local"
+Environment="KUBELET_AUTHZ_ARGS=--authorization-mode=Webhook --client-ca-file=/etc/kubernetes/pki/ca.crt"
+Environment="KUBELET_CADVISOR_ARGS=--cadvisor-port=0"
+Environment="KUBELET_CERTIFICATE_ARGS=--rotate-certificates=true --cert-dir=/var/lib/kubelet/pki"
+Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs"
+ExecStart=
+ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_SYSTEM_PODS_ARGS $KUBELET_NETWORK_ARGS $KUBELET_DNS_ARGS $KUBELET_AUTHZ_ARGS $KUBELET_CADVISOR_ARGS $KUBELET_CERTIFICATE_ARGS $KUBELET_EXTRA_ARGS
+
+
+root@ubuntu:/home/kubernetes/node/bin# systemctl daemon-reload
+root@ubuntu:/home/kubernetes/node/bin# systemctl restart kubelet
+Failed to restart kubelet.service: Unit kubelet.service is masked.
+root@ubuntu:/home/kubernetes/node/bin# systemctl unmask kubelet
+Removed symlink /etc/systemd/system/kubelet.service.
+root@ubuntu:/home/kubernetes/node/bin# systemctl restart kubelet
+root@ubuntu:/home/kubernetes/node/bin# systemctl status kubelet
+
+root@ubuntu:~# kubeadm version
+
+初始化集群1.8
+root@ubuntu:~# cat cluster 
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+networking:
+  serviceSubnet: 10.96.0.10/16
+  podSubnet: 10.244.0.0/16
+
+  
+root@ubuntu:~# kubeadm  init --config=cluster
+  kubeadm join --token c3deed.6df140ecf1e6cf4a 192.168.1.148:6443 --discovery-token-ca-cert-hash sha256:fa391871931a96898877b6a342f380dddf7d9cd195d7d989a516f87fa8d2c58b
+
+
+
+root@ubuntu:~# rm -rf /root/.kube/
+root@ubuntu:~#   mkdir -p $HOME/.kube
+root@ubuntu:~#   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+root@ubuntu:~#   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+root@ubuntu:/# kubectl get no
+NAME      STATUS     ROLES     AGE       VERSION
+ubuntu    NotReady   master    15s       v1.8.4
+
+
+创建网络flannel
+root@ubuntu:/# kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+网络正常后，node状态会变为ready，kubedns也会起来
+root@ubuntu:~# kubectl get no -o wide
+NAME      STATUS    ROLES     AGE       VERSION   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION     CONTAINER-RUNTIME
+ubuntu    Ready     master    5m        v1.8.4    <none>        Ubuntu 16.04.3 LTS   4.4.0-87-generic   docker://1.13.1
+
+192.168.1.146 作为node加入
+先重置节点
+从master cp kubeadm，kubelet及kubelet的配置。重启kubelet
+systemctl daemon-reload
+systemctl unmask kubelet
+systemctl restart kubelet
+再kubeadm join。。。
+
+master节点
+root@ubuntu:~# kubectl get no
+NAME      STATUS    ROLES     AGE       VERSION
+node2     Ready     <none>    26s       v1.8.4
+ubuntu    Ready     master    12m       v1.8.4
+
+随便创建一些应用
+root@ubuntu:~# kubectl run nginx --image=nginx --replicas=2 
+deployment "nginx" created
+root@ubuntu:~# kubectl run tomcat --image=tomcat --replicas=3 
+deployment "tomcat" created
+root@ubuntu:~# kubectl expose deployment nginx --port=80 --type=NodePort 
+service "nginx" exposed
+root@ubuntu:~# kubectl expose deployment tomcat --port=8080 --type=NodePort 
+service "tomcat" exposed
+root@ubuntu:~# kubectl expose deployment nginx --port=80 --type=NodePort
+
+
+##############################
+升级
+下载最新版kubeadm
+ export VERSION=$(curl -sSL https://dl.k8s.io/release/stable.txt) # or manually specify a released Kubernetes version
+ export ARCH=amd64 # or: arm, arm64, ppc64le, s390x
+ curl -sSL https://dl.k8s.io/release/${VERSION}/bin/linux/${ARCH}/kubeadm > /usr/bin/kubeadm
+ chmod a+rx /usr/bin/kubeadm
+ 
+ On the master node, run the following:
+$ kubeadm upgrade plan

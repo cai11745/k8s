@@ -1,3 +1,22 @@
+apiVersion: kubeadm.k8s.io/v1alpha1
+kind: MasterConfiguration
+etcd:
+  endpoints:
+  - http://192.168.1.144:2379
+networking:
+  podSubnet: 10.244.0.0/16
+apiServerCertSANs:
+- master1
+- master2
+- master3
+- 192.168.1.144
+- 192.168.1.145
+- 192.168.1.146
+- 192.168.4.130
+- 127.0.0.1
+token: 7f276c.0741d82a5337f526
+tokenTTL: "0"
+
 [root@master1 ~]# cat /etc/kubernetes/cluster
 apiVersion: kubeadm.k8s.io/v1alpha1
 kind: MasterConfiguration
@@ -11,8 +30,30 @@ apiServerCertSANs:
 - master1
 - 192.168.1.141
 
+kind: MasterConfiguration
+etcd:
+  endpoints:
+  - https://10.128.0.2:2379
+  caFile : /etc/etcd/ssl/etcd-ca.pem
+  certFile : /etc/etcd/ssl/etcd.pem
+  keyFile : /etc/etcd/ssl/etcd-key.pem
+networking:
+  podSubnet: 10.244.0.0/16
+    
+kind: MasterConfiguration
+etcd:
+  endpoints:
+  - https://192.168.1.144:2379
+  - https://192.168.1.145:2379
+  - https://192.168.1.146:2379
+  caFile : /etc/etcd/ssl/etcd-ca.pem
+  certFile : /etc/etcd/ssl/etcd.pem
+  keyFile : /etc/etcd/ssl/etcd-key.pem
+networking:
+  podSubnet: 10.244.0.0/16
 
-
-
+kubeadm init --config=cluster
+kubeadm init --pod-network-cidr=10.244.0.0/16
+ 
 root@instance-1:/home# kubectl taint node instance-1 node-role.kubernetes.io/master-
 node "instance-1" untainted
