@@ -1,0 +1,36 @@
+mkdir -p /etc/cni/net.d
+cat >/etc/cni/net.d/10-mynet.conf <<-EOF
+{
+    "cniVersion": "0.3.0",
+    "name": "mynet",
+    "type": "bridge",
+    "bridge": "cni0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "10.244.1.0/24",
+        "routes": [
+            { "dst": "0.0.0.0/0"  }
+        ]
+    }
+}
+EOF
+cat >/etc/cni/net.d/99-loopback.conf <<-EOF
+{
+    "cniVersion": "0.3.0",
+    "type": "loopback"
+}
+EOF
+
+ 10.140.0.2    10.140.0.3   is master & node ip
+# on master
+ip route add 10.244.2.0/24 via 10.140.0.2    
+ip route add 10.244.3.0/24 via 10.140.0.3
+
+# on node-1
+ip route add 10.244.1.0/24 via 10.140.0.1
+ip route add 10.244.3.0/24 via 10.140.0.3
+
+cat /etc/network/interfaces   add
+up route add -net 10.244.1.0/24 gw  10.140.0.2   
